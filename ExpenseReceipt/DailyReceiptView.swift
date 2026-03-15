@@ -1,9 +1,9 @@
 import SwiftUI
 
 // Matches the three states from the Figma design:
-//   Empty   — no items, centered "+ ADD AN EXPENSE" button
+//   Empty   — no items, centered "+ tap to add expense" button
 //   Filling — items list + active text-entry row (row with cursor)
-//   Filled  — complete list with item count & total, date turns blue
+//   Filled  — complete list with item count & total
 
 struct DailyReceiptView: View {
     let date: Date
@@ -25,66 +25,124 @@ struct DailyReceiptView: View {
 
     private var total: Int { items.reduce(0) { $0 + $1.amount } }
 
-    /// Blue when the receipt is finalized (items present, not actively editing)
-    private var headerColor: Color {
-        !items.isEmpty && !isAdding ? Color(hex: "135787") : .black
-    }
-
     // MARK: - Body
 
     var body: some View {
+        ZStack(alignment: .top) {
+            Color(hex: "135787").ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                tabHeader
+                receiptCard
+            }
+            .ignoresSafeArea(edges: .bottom)
+        }
+    }
+
+    // MARK: - Tab Header
+
+    private var tabHeader: some View {
+        HStack(alignment: .bottom, spacing: -4) {
+            // Active "DAILY" tab (front)
+            HStack(spacing: 4) {
+                Image(systemName: "calendar")
+                    .font(.system(size: 14))
+                    .foregroundColor(Color(hex: "546774"))
+                Text("DAILY")
+                    .font(.custom("InstrumentSans-SemiBold", size: 14))
+                    .foregroundColor(Color(hex: "546774"))
+                    .kerning(2.24)
+                    .textCase(.uppercase)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(
+                Color(hex: "f0e4da")
+                    .clipShape(PaperTabShape())
+            )
+            .zIndex(1)
+
+            // Inactive second tab (behind)
+            Color(hex: "c8bdb5")
+                .frame(width: 60, height: 40)
+                .clipShape(PaperTabShape())
+                .zIndex(0)
+        }
+        .padding(.leading, 20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, 8)
+    }
+
+    // MARK: - Receipt Card
+
+    private var receiptCard: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 header
+                asteriskDivider
                 columnHeaders
-                Divider().overlay(Color.black)
-                expenseRows.padding(.top, 16)
+                asteriskDivider
+                expenseRows
+                    .padding(.top, 8)
 
                 if !isAdding {
                     addButton
                         .frame(maxWidth: items.isEmpty ? .infinity : nil,
                                alignment: items.isEmpty ? .center : .leading)
-                        .padding(.top, items.isEmpty ? 40 : 16)
+                        .padding(.top, items.isEmpty ? 60 : 16)
                 }
 
-                Spacer(minLength: 48)
+                Spacer(minLength: 60)
 
                 if !items.isEmpty {
                     footer
                 }
+
+                asteriskDivider
+                    .padding(.top, 8)
+                    .padding(.bottom, 32)
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 32)
+            .padding(.top, 28)
         }
-        .background(Color.white)
-        .ignoresSafeArea(edges: .bottom)
+        .background(Color(hex: "f0e4da"))
     }
 
     // MARK: - Subviews
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 4) {
             Text(dateString)
-                .font(.custom("CoFoRaffine-Medium", size: 32))
-                .foregroundColor(headerColor)
+                .font(.custom("InstrumentSerif-Regular", size: 48))
+                .foregroundColor(Color(hex: "135787"))
+                .tracking(-2.4)
 
             TextField("write a description", text: $description)
-                .font(.custom("CoFoRaffine-Regular", size: 16))
-                .foregroundColor(headerColor)
-                .tint(headerColor)
+                .font(.system(size: 16))
+                .foregroundColor(Color(hex: "546774"))
+                .tint(Color(hex: "135787"))
         }
-        .padding(.top, 24)
-        .padding(.bottom, 51)
+        .padding(.bottom, 32)
     }
 
     private var columnHeaders: some View {
         HStack(spacing: 0) {
-            Text("QTY").frame(width: 60, alignment: .leading)
+            Text("QTY").frame(width: 52, alignment: .leading)
             Text("ITEM").frame(maxWidth: .infinity, alignment: .leading)
-            Text("AMT").frame(width: 60, alignment: .trailing)
+            Text("AMT").frame(width: 52, alignment: .trailing)
         }
-        .font(.custom("CutiveMono-Regular", size: 16))
-        .foregroundColor(.black)
-        .padding(.bottom, 8)
+        .font(.system(size: 14))
+        .foregroundColor(Color(hex: "546774").opacity(0.6))
+        .textCase(.uppercase)
+        .padding(.vertical, 6)
+    }
+
+    private var asteriskDivider: some View {
+        Text(String(repeating: "* ", count: 22).trimmingCharacters(in: .whitespaces))
+            .font(.custom("CutiveMono-Regular", size: 14))
+            .foregroundColor(Color(hex: "546774").opacity(0.6))
+            .lineLimit(1)
+            .padding(.vertical, 4)
     }
 
     private var expenseRows: some View {
@@ -92,22 +150,22 @@ struct DailyReceiptView: View {
             ForEach(Array(items.enumerated()), id: \.element.id) { idx, item in
                 HStack(spacing: 0) {
                     Text(String(format: "%02d", idx + 1))
-                        .frame(width: 60, alignment: .leading)
+                        .frame(width: 52, alignment: .leading)
                     Text(item.name.uppercased())
                         .frame(maxWidth: .infinity, alignment: .leading)
                     Text("$\(item.amount)")
-                        .frame(width: 60, alignment: .trailing)
+                        .frame(width: 52, alignment: .trailing)
                 }
                 .font(.custom("CutiveMono-Regular", size: 16))
-                .foregroundColor(.black)
+                .foregroundColor(Color(hex: "546774"))
             }
 
             if isAdding {
                 HStack(spacing: 0) {
                     Text(String(format: "%02d", items.count + 1))
-                        .frame(width: 60, alignment: .leading)
+                        .frame(width: 52, alignment: .leading)
                         .font(.custom("CutiveMono-Regular", size: 16))
-                        .foregroundColor(.black)
+                        .foregroundColor(Color(hex: "546774"))
 
                     TextField("", text: $newItemName)
                         .font(.custom("CutiveMono-Regular", size: 16))
@@ -120,7 +178,7 @@ struct DailyReceiptView: View {
                         .font(.custom("CutiveMono-Regular", size: 16))
                         .keyboardType(.numberPad)
                         .multilineTextAlignment(.trailing)
-                        .frame(width: 60, alignment: .trailing)
+                        .frame(width: 52, alignment: .trailing)
                 }
                 .onAppear { nameFieldFocused = true }
             }
@@ -129,18 +187,20 @@ struct DailyReceiptView: View {
 
     private var addButton: some View {
         Button(action: { isAdding = true }) {
-            HStack(spacing: 9) {
-                Image(systemName: "plus").font(.system(size: 14, weight: .regular))
-                Text("ADD AN EXPENSE")
-                    .font(.custom("CutiveMono-Regular", size: 16))
+            VStack(spacing: 6) {
+                Image(systemName: "plus")
+                    .font(.system(size: 36, weight: .thin))
+                Text("tap to add expense")
+                    .font(.system(size: 16))
+                    .tracking(-0.32)
             }
-            .foregroundColor(.black)
+            .foregroundColor(Color(hex: "255c86"))
         }
     }
 
     private var footer: some View {
         VStack(spacing: 0) {
-            Divider().overlay(Color.black).padding(.bottom, 8)
+            asteriskDivider.padding(.bottom, 8)
             HStack {
                 Text("ITEM COUNT")
                 Spacer()
@@ -154,7 +214,7 @@ struct DailyReceiptView: View {
             }
         }
         .font(.custom("CutiveMono-Regular", size: 16))
-        .foregroundColor(.black)
+        .foregroundColor(Color(hex: "546774"))
         .padding(.bottom, 24)
     }
 
@@ -175,6 +235,23 @@ struct DailyReceiptView: View {
     }
 }
 
+// MARK: - Tab Shape
+
+struct PaperTabShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let taper: CGFloat = 10
+        path.move(to: CGPoint(x: 0, y: rect.height))
+        path.addLine(to: CGPoint(x: taper, y: 0))
+        path.addLine(to: CGPoint(x: rect.width - taper, y: 0))
+        path.addLine(to: CGPoint(x: rect.width, y: rect.height))
+        path.closeSubpath()
+        return path
+    }
+}
+
+// MARK: - Previews
+
 #Preview("Empty") {
     DailyReceiptView(date: Date(), description: .constant(""), items: .constant([]))
 }
@@ -185,11 +262,8 @@ struct DailyReceiptView: View {
         description: .constant("groceries"),
         items: .constant([
             ExpenseItem(name: "Trader Joes", amount: 75),
-            ExpenseItem(name: "Trader Joes", amount: 75),
-            ExpenseItem(name: "Trader Joes", amount: 75),
-            ExpenseItem(name: "Trader Joes", amount: 75),
-            ExpenseItem(name: "Trader Joes", amount: 75),
-            ExpenseItem(name: "Trader Joes", amount: 75),
+            ExpenseItem(name: "Coffee", amount: 12),
+            ExpenseItem(name: "Lunch", amount: 18),
         ])
     )
 }
